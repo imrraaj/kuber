@@ -112,14 +112,44 @@ export async function runCli(args: string[]): Promise<void> {
           break;
         }
 
-        // Otherwise, show JSON output for specific strategy
+        // Otherwise, show formatted output for specific strategy
         const response = await client.sendRequest({
           type: "status",
           name: name
         });
 
         if (response.type === "success") {
-          console.log(JSON.stringify(response.data, null, 2));
+          const status = response.data as any;
+
+          console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+          console.log(`  Strategy: ${name}`);
+          console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+
+          // P&L with color
+          const pnl = status.pnl || 0;
+          const pnlColor = pnl >= 0 ? '\x1b[32m' : '\x1b[31m'; // green or red
+          const pnlSign = pnl >= 0 ? '+' : '';
+          console.log(`  P&L:              ${pnlColor}${pnlSign}${pnl.toFixed(2)}\x1b[0m`);
+
+          console.log(`  Positions:        ${status.positionCount || 0}`);
+
+          if (status.lastTradeAt) {
+            const tradeDate = new Date(status.lastTradeAt);
+            console.log(`  Last Trade:       ${tradeDate.toLocaleString()}`);
+          } else {
+            console.log(`  Last Trade:       Never`);
+          }
+
+          // Custom metrics
+          if (status.custom && Object.keys(status.custom).length > 0) {
+            console.log(`\n  Custom Metrics:`);
+            for (const [key, value] of Object.entries(status.custom)) {
+              const displayValue = typeof value === 'number' ? value.toFixed(2) : String(value);
+              console.log(`    ${key.padEnd(14)} ${displayValue}`);
+            }
+          }
+
+          console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
         } else {
           console.error(`Error: ${response.error}`);
           process.exit(1);

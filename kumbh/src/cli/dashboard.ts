@@ -73,6 +73,7 @@ export class Dashboard {
 
     // Keyboard shortcuts
     screen.key(["s"], async () => {
+      this.strategiesTable.updateSelection();
       const selected = this.strategiesTable.getSelectedStrategy();
       if (selected) {
         await this.toggleStrategy(selected);
@@ -80,6 +81,7 @@ export class Dashboard {
     });
 
     screen.key(["r"], async () => {
+      this.strategiesTable.updateSelection();
       const selected = this.strategiesTable.getSelectedStrategy();
       if (selected) {
         await this.reloadStrategy(selected);
@@ -89,6 +91,23 @@ export class Dashboard {
     // Manual refresh
     screen.key(["f5", "R"], async () => {
       await this.fetchAndUpdate();
+    });
+
+    // Arrow key navigation - update right panels when selection changes
+    screen.key(["up", "down", "k", "j"], () => {
+      // Small delay to let the table update its selection first
+      setImmediate(() => {
+        this.strategiesTable.updateSelection();
+        const selected = this.strategiesTable.getSelectedStrategy();
+        if (selected) {
+          this.positionDetails.update(selected);
+          this.pnlChart.update(selected.name);
+        } else {
+          this.positionDetails.update(null);
+          this.pnlChart.update(null);
+        }
+        this.layout.screen.render();
+      });
     });
   }
 

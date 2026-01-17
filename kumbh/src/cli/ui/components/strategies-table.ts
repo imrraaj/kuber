@@ -16,6 +16,19 @@ export class StrategiesTableComponent {
   constructor(widget: contrib.widget.Table) {
     this.widget = widget;
     this.setupHeaders();
+    this.setupSelectionTracking();
+  }
+
+  private setupSelectionTracking() {
+    // Track up/down navigation
+    this.widget.rows.on("select", (item: any, index: number) => {
+      this.selectedIndex = index;
+    });
+
+    // Also listen to key events on the widget
+    (this.widget as any).on("select", (item: any, index: number) => {
+      this.selectedIndex = index;
+    });
   }
 
   private setupHeaders() {
@@ -66,16 +79,20 @@ export class StrategiesTableComponent {
       return null;
     }
 
-    // The table widget maintains its own selected index
-    const selected = (this.widget as any).selected;
-    const index = typeof selected === "number" ? selected : 0;
-
-    return this.strategies[index] || null;
+    // Use our tracked selected index
+    return this.strategies[this.selectedIndex] || this.strategies[0] || null;
   }
 
   getSelectedIndex(): number {
-    const selected = (this.widget as any).selected;
-    return typeof selected === "number" ? selected : 0;
+    return this.selectedIndex;
+  }
+
+  updateSelection() {
+    // Force update the selected index from the widget's internal state
+    const rowsWidget = this.widget.rows as any;
+    if (rowsWidget && typeof rowsWidget.selected === "number") {
+      this.selectedIndex = rowsWidget.selected;
+    }
   }
 
   onSelect(callback: (strategy: StrategyWithStatus | null) => void) {
