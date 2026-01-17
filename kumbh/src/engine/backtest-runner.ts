@@ -40,10 +40,20 @@ export class BacktestRunner {
     const trades: BacktestTrade[] = [];
     const equityCurve: EquityPoint[] = [];
 
-    for (const candle of candles) {
+    console.log(`Starting backtest loop with ${candles.length} candles`);
+    for (let i = 0; i < candles.length; i++) {
+      const candle = candles[i];
+      if (i === 0) {
+        console.log(`First candle data:`, JSON.stringify(candle));
+      }
       const balanceBefore = ctx.getBalanceSync();
 
-      await instance.onBacktestCandle(candle);
+      try {
+        await instance.onBacktestCandle(candle);
+      } catch (error) {
+        console.error(`Error in onBacktestCandle at index ${i}:`, error);
+        throw error;
+      }
 
       const balanceAfter = ctx.getBalanceSync();
 
@@ -52,6 +62,7 @@ export class BacktestRunner {
         equity: balanceAfter,
       });
     }
+    console.log(`Backtest loop completed`);
 
     await instance.cleanup();
     tempDb.close();
