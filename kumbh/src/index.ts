@@ -32,11 +32,12 @@ Kumbh - Strategy Engine for Hyperliquid
 
 Usage:
   kumbh daemon              Start the engine daemon
+  kumbh dashboard           Open interactive TUI dashboard
+  kumbh show                Open interactive TUI dashboard
+  kumbh show <name>         Show strategy details (JSON)
   kumbh add <file.ts>       Add a strategy
   kumbh start <name>        Start a strategy
   kumbh stop <name>         Stop a strategy
-  kumbh show                Show dashboard
-  kumbh show <name>         Show strategy details
   kumbh remove <name>       Remove a strategy
   kumbh reload <name>       Reload strategy code
   kumbh backtest <name>     Run backtest

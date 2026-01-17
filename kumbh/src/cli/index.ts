@@ -1,7 +1,6 @@
 import { SocketClient } from "./socket-client.ts";
 import { loadConfig } from "../config.ts";
-import { formatTimeAgo } from "../utils/time.ts";
-import type { StrategyEntry } from "../db/engine-db.ts";
+import { Dashboard } from "./dashboard.ts";
 
 export async function runCli(args: string[]): Promise<void> {
   const config = await loadConfig();
@@ -10,6 +9,16 @@ export async function runCli(args: string[]): Promise<void> {
 
   try {
     switch (command) {
+      case "dashboard": {
+        // Launch interactive TUI dashboard
+        const dashboard = new Dashboard(
+          config.socketPath,
+          config.isTestnet ? "TESTNET" : "MAINNET"
+        );
+        await dashboard.start();
+        break;
+      }
+
       case "add": {
         const filePath = args[1];
         if (!filePath) {
@@ -92,31 +101,25 @@ export async function runCli(args: string[]): Promise<void> {
 
       case "show": {
         const name = args[1];
+
+        // If no strategy name specified, launch dashboard
+        if (!name) {
+          const dashboard = new Dashboard(
+            config.socketPath,
+            config.isTestnet ? "TESTNET" : "MAINNET"
+          );
+          await dashboard.start();
+          break;
+        }
+
+        // Otherwise, show JSON output for specific strategy
         const response = await client.sendRequest({
           type: "status",
-          name: name || undefined
+          name: name
         });
 
         if (response.type === "success") {
-          if (name) {
-            console.log(JSON.stringify(response.data, null, 2));
-          } else {
-            const strategies = response.data as StrategyEntry[];
-            console.log("\nSTRATEGIES:\n");
-            console.log("NAME".padEnd(20) + "STATUS".padEnd(12) + "ERRORS".padEnd(10) + "LAST CANDLE");
-            console.log("=".repeat(60));
-            for (const strategy of strategies) {
-              const status = strategy.isActive ? "RUNNING" : "STOPPED";
-              const lastCandle = formatTimeAgo(strategy.lastCandleAt);
-              console.log(
-                strategy.name.padEnd(20) +
-                status.padEnd(12) +
-                strategy.errorCount.toString().padEnd(10) +
-                lastCandle
-              );
-            }
-            console.log("");
-          }
+          console.log(JSON.stringify(response.data, null, 2));
         } else {
           console.error(`Error: ${response.error}`);
           process.exit(1);
