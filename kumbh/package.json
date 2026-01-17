@@ -1,15 +1,41 @@
 {
   "name": "kumbh",
-  "module": "index.ts",
+  "version": "0.1.0",
+  "description": "Strategy execution engine for Hyperliquid",
   "type": "module",
-  "private": true,
+  "main": "src/index.ts",
+  "bin": {
+    "kumbh": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "test": "bun test",
+    "daemon": "bun run src/index.ts daemon"
+  },
+  "keywords": [
+    "trading",
+    "hyperliquid",
+    "strategy",
+    "crypto",
+    "bot"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@nktkas/hyperliquid": "^0.30.2",
+    "blessed": "^0.1.81",
+    "blessed-contrib": "^4.11.0"
+  },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/blessed": "^0.1.25",
+    "@types/node": "^20.11.5",
+    "bun-types": "^1.0.25"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
-  "dependencies": {
-    "@nktkas/hyperliquid": "^0.30.2"
+  "engines": {
+    "bun": ">=1.0.0"
   }
 }
