@@ -15,7 +15,9 @@
     "status": "bun run src/index.ts status",
     "dashboard": "bun run src/index.ts dashboard",
     "add": "bun run src/index.ts add",
-    "test": "bun test"
+    "test": "bun test",
+    "restart-strategy": "bun run src/cli/index.ts stop Max-Trend-Points; bun run src/cli/index.ts reload Max-Trend-Points && bun run src/cli/index.ts start Max-Trend-Points",
+    "restart-strategy:clean": "bun run src/cli/index.ts stop Max-Trend-Points; rm -f ~/.kumbh/data/Max-Trend-Points.db; bun run src/cli/index.ts reload Max-Trend-Points && bun run src/cli/index.ts start Max-Trend-Points"
   },
   "keywords": [
     "trading",
@@ -27,10 +29,12 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@elysiajs/cors": "^1.4.1",
     "@nktkas/hyperliquid": "^0.30.2",
     "blessed": "^0.1.81",
     "blessed-contrib": "^4.11.0",
-    "elysia": "^1.4.22"
+    "elysia": "^1.4.22",
+    "viem": "^2.44.4"
   },
   "devDependencies": {
     "@types/blessed": "^0.1.25",

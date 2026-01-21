@@ -21,6 +21,8 @@ export async function runDaemon(config: Config): Promise<void> {
     config.hyperliquid.walletAddress,
     config.isTestnet
   );
+  // Initialize symbol converter for proper asset ID resolution
+  await api.init();
 
   // Initialize subscription manager for WebSocket data
   const subscriptionManager = new SubscriptionManager(config.isTestnet);
@@ -34,6 +36,12 @@ export async function runDaemon(config: Config): Promise<void> {
 
   // Connect candle events to strategy manager
   subscriptionManager.onCandle(async (candle) => {
+    // console.log(`[Daemon] Received candle, dispatching to strategies:`, {
+    //   symbol: candle.s,
+    //   interval: candle.i,
+    //   close: candle.c,
+    //   time: new Date(candle.t).toISOString()
+    // });
     await strategyManager.dispatchCandle(candle);
   });
 

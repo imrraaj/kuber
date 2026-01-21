@@ -6,7 +6,9 @@ import type {
   AccountState,
   Position,
   StructuredLogger,
+  Interval,
 } from "../types/index.ts";
+import type { HistoricalCandle } from "../engine/hyperliquid.ts";
 
 /**
  * Context object injected into strategies.
@@ -32,6 +34,14 @@ export interface StrategyContext {
    * Get all current open positions.
    */
   getPositions(): Promise<Position[]>;
+
+  /**
+   * Fetch historical candles for warmup/initialization.
+   * @param symbol - The trading symbol (e.g., "BTC")
+   * @param interval - The candle interval (e.g., "1m", "1h")
+   * @param count - Number of candles to fetch (default: 200)
+   */
+  fetchCandles(symbol: string, interval: Interval, count?: number): Promise<HistoricalCandle[]>;
 
   /**
    * Pre-configured SQLite database for THIS strategy.

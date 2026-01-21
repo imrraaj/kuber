@@ -14,7 +14,7 @@ export class SubscriptionManager {
   }
 
   async init(): Promise<void> {
-    this.transport = new WebSocketTransport({ testnet: this.isTestnet });
+    this.transport = new WebSocketTransport();
     await this.transport.ready();
     this.client = new SubscriptionClient({ transport: this.transport });
   }
@@ -39,9 +39,16 @@ export class SubscriptionManager {
       throw new Error("SubscriptionManager not initialized");
     }
 
+    // console.log(`[SubscriptionManager] Creating subscription for ${key}...`);
     const subscription = await this.client.candle(
       { coin: symbol, interval: timeframe },
       (data) => {
+        // console.log(`[SubscriptionManager] Candle received: ${data.s}:${data.i}`, {
+        //   time: new Date(data.t).toISOString(),
+        //   close: data.c,
+        //   symbol: data.s,
+        //   interval: data.i
+        // });
         if (this.onCandleCallback) {
           this.onCandleCallback(data);
         }
@@ -71,8 +78,9 @@ export class SubscriptionManager {
     }
   }
 
-  getSubscribersFor(symbol: string, timeframe: Interval): Set<string> {
-    const key = `${symbol}:${timeframe}`;
+  getSubscribersFor(symbol: string, interval: Interval): Set<string> {
+    const key = `${symbol}:${interval}`;
+    // console.log(`[SubscriptionManager] getSubscribersFor(${key}), subscribers map keys:`, Array.from(this.subscribers.keys()));
     return this.subscribers.get(key) || new Set();
   }
 

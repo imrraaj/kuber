@@ -1,4 +1,4 @@
 /**
- * Re-export CandleEvent from Hyperliquid SDK
+ * Re-export CandleEvent from Hyperliquid SDK (WebSocket subscription type)
  */
-export type { CandleSnapshot as CandleEvent } from "@nktkas/hyperliquid";
+export type { CandleWsEvent as CandleEvent } from "@nktkas/hyperliquid";

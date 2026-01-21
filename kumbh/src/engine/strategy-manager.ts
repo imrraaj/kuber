@@ -23,6 +23,7 @@ import type { BacktestResponse } from "../api/types.ts";
 export class StrategyManager extends EventEmitter {
   private allStrategies: Map<string, StrategyEntry> = new Map();
   private activeStrategies: Map<string, Strategy> = new Map();
+  private strategyDatabases: Map<string, import("bun:sqlite").Database> = new Map();
   private db: EngineDatabase;
   private subscriptionManager: SubscriptionManager;
   private api: HyperliquidAPI;
@@ -103,6 +104,7 @@ export class StrategyManager extends EventEmitter {
 
     const StrategyClass = await loadStrategyFromFile(entry.filePath);
     const strategyDb = this.db.createStrategyDatabase(name, this.config.dataDir);
+    this.strategyDatabases.set(name, strategyDb);
     const logger = createLogger(name);
     const ctx = new LiveStrategyContext(strategyDb, logger, this.config.isTestnet, this.api);
     const instance = new StrategyClass(ctx);
@@ -187,15 +189,21 @@ export class StrategyManager extends EventEmitter {
   }
 
   async dispatchCandle(candle: CandleEvent): Promise<void> {
-    const subscribers = this.subscriptionManager.getSubscribersFor(candle.coin, candle.interval);
-    
+    // console.log(`[StrategyManager] dispatchCandle called for ${candle.s}:${candle.i}`);
+    const subscribers = this.subscriptionManager.getSubscribersFor(candle.s, candle.i);
+    // console.log(`[StrategyManager] Found ${subscribers.size} subscribers:`, Array.from(subscribers));
+
     for (const strategyName of subscribers) {
       const instance = this.activeStrategies.get(strategyName);
       const entry = this.allStrategies.get(strategyName);
-      
+
+      // console.log(`[StrategyManager] Processing strategy ${strategyName}: instance=${!!instance}, entry=${!!entry}`);
+
       if (instance && entry) {
         try {
+          // console.log(`[StrategyManager] Calling onCandle for ${strategyName}...`);
           await instance.onCandle(candle);
+          // console.log(`[StrategyManager] onCandle completed for ${strategyName}`);
           this.db.updateLastCandle(strategyName, Date.now());
           this.emit("candleProcessed", strategyName);
         } catch (error) {
@@ -242,6 +250,13 @@ export class StrategyManager extends EventEmitter {
    */
   getStrategy(name: string): StrategyEntry | null {
     return this.allStrategies.get(name) || null;
+  }
+
+  /**
+   * Get a strategy's database (for querying trades, etc.)
+   */
+  getStrategyDatabase(name: string): import("bun:sqlite").Database | null {
+    return this.strategyDatabases.get(name) || null;
   }
 
   /**

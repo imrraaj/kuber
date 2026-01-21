@@ -111,6 +111,7 @@ export interface StatusResponse {
 export type WSServerMessage =
   | WSInitialStateMessage
   | WSStrategyUpdateMessage
+  | WSStrategyLogMessage
   | WSErrorMessage
   | WSPongMessage;
 
@@ -129,6 +130,23 @@ export interface WSStrategyUpdateMessage {
     event: "started" | "stopped" | "updated" | "error" | "candle_processed" | "added" | "removed";
   };
   timestamp: number;
+}
+
+export interface WSStrategyLogMessage {
+  type: "strategy_log";
+  payload: {
+    name: string;
+    log: LogEntryResponse;
+  };
+  timestamp: number;
+}
+
+export interface LogEntryResponse {
+  timestamp: number;
+  level: "debug" | "info" | "warn" | "error";
+  strategyName: string;
+  message: string;
+  data?: Record<string, unknown>;
 }
 
 export interface WSErrorMessage {

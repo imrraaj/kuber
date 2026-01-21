@@ -6,9 +6,10 @@ import type {
   AccountState,
   Position,
   StructuredLogger,
+  Interval,
 } from "../types/index.ts";
 import type { StrategyContext } from "./context.ts";
-import type { HyperliquidAPI } from "../engine/hyperliquid.ts";
+import type { HyperliquidAPI, HistoricalCandle } from "../engine/hyperliquid.ts";
 
 export class LiveStrategyContext implements StrategyContext {
   db: Database;
@@ -43,5 +44,9 @@ export class LiveStrategyContext implements StrategyContext {
 
   async getPositions(): Promise<Position[]> {
     return this.api.getPositions();
+  }
+
+  async fetchCandles(symbol: string, interval: Interval, count: number = 200): Promise<HistoricalCandle[]> {
+    return this.api.fetchCandles(symbol, interval, count);
   }
 }

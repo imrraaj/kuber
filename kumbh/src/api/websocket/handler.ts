@@ -1,10 +1,10 @@
 import { Elysia } from "elysia";
 import type { StrategyManager } from "../../engine/strategy-manager.ts";
+import type { LogManager, LogEntry } from "../../utils/log-manager.ts";
 import type {
   WSServerMessage,
   WSClientMessage,
   WSInitialStateMessage,
-  WSStrategyUpdateMessage,
   StrategyResponse,
 } from "../types.ts";
 
@@ -20,12 +20,16 @@ const connectedClients = new Set<{
  * Broadcast a message to all connected WebSocket clients.
  */
 export function broadcastToClients(message: WSServerMessage): void {
+  // console.log(`[WebSocket] Broadcasting to ${connectedClients.size} clients:`, message.type, message);
   const messageStr = JSON.stringify(message);
 
   for (const client of connectedClients) {
     try {
-      // If it's a strategy update, check subscription filter
-      if (message.type === "strategy_update" && client.subscribedStrategies !== null) {
+      // If it's a strategy-specific message, check subscription filter
+      if (
+        (message.type === "strategy_update" || message.type === "strategy_log") &&
+        client.subscribedStrategies !== null
+      ) {
         const strategyName = message.payload.name;
         if (!client.subscribedStrategies.has(strategyName)) {
           continue;
@@ -46,6 +50,7 @@ export function broadcastToClients(message: WSServerMessage): void {
  * Server -> Client Messages:
  * - initial_state: Sent on connection with all strategies
  * - strategy_update: Sent when strategy state changes
+ * - strategy_log: Sent when a strategy logs something
  * - error: Sent on errors
  * - pong: Response to ping
  *
@@ -53,7 +58,10 @@ export function broadcastToClients(message: WSServerMessage): void {
  * - ping: Keepalive
  * - subscribe: Filter to specific strategies
  */
-export function createWebSocketHandler(strategyManager: StrategyManager): Elysia {
+export function createWebSocketHandler(
+  strategyManager: StrategyManager,
+  logManager: LogManager
+): Elysia {
   // Listen to strategy manager events and broadcast
   strategyManager.on("strategyStarted", (name: string) => {
     const strategy = strategyManager.getStrategy(name);
@@ -113,7 +121,7 @@ export function createWebSocketHandler(strategyManager: StrategyManager): Elysia
     });
   });
 
-  strategyManager.on("strategyError", (name: string, error: string) => {
+  strategyManager.on("strategyError", (name: string, _error: string) => {
     broadcastToClients({
       type: "strategy_update",
       payload: {
@@ -127,13 +135,29 @@ export function createWebSocketHandler(strategyManager: StrategyManager): Elysia
   });
 
   strategyManager.on("candleProcessed", (name: string) => {
+    // console.log(`[WebSocket] candleProcessed event for ${name}`);
+    const status = strategyManager.getStrategyStatus(name);
+    // console.log(`[WebSocket] Strategy status:`, status);
     broadcastToClients({
       type: "strategy_update",
       payload: {
         name,
         isActive: true,
-        status: strategyManager.getStrategyStatus(name),
+        status,
         event: "candle_processed",
+      },
+      timestamp: Date.now(),
+    });
+  });
+
+  // Listen to log manager events and broadcast
+  logManager.on("log", (entry: LogEntry) => {
+    console.log(`[WebSocket] Log event for ${entry.strategyName}:`, entry.message);
+    broadcastToClients({
+      type: "strategy_log",
+      payload: {
+        name: entry.strategyName,
+        log: entry,
       },
       timestamp: Date.now(),
     });

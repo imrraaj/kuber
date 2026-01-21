@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+/* Selection color */
+::selection {
+  background: rgba(0, 212, 255, 0.3);
+}
+
+/* Panel styles */
+@layer components {
+  .panel {
+    @apply bg-terminal-panel border border-terminal-border rounded;
+  }
+
+  .panel-header {
+    @apply px-3 py-2 border-b border-terminal-border text-xs font-semibold uppercase tracking-wider text-gray-400;
+  }
+
+  .panel-content {
+    @apply p-3;
+  }
+
+  /* Status indicators */
+  .status-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+
+  .status-dot-active {
+    @apply bg-profit animate-pulse;
+  }
+
+  .status-dot-inactive {
+    @apply bg-gray-600;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply px-3 py-1.5 text-xs font-medium rounded transition-colors;
+  }
+
+  .btn-primary {
+    @apply bg-accent/20 text-accent border border-accent/30 hover:bg-accent/30;
+  }
+
+  .btn-success {
+    @apply bg-profit/20 text-profit border border-profit/30 hover:bg-profit/30;
+  }
+
+  .btn-danger {
+    @apply bg-loss/20 text-loss border border-loss/30 hover:bg-loss/30;
+  }
+
+  .btn-ghost {
+    @apply text-gray-400 hover:text-white hover:bg-white/5;
+  }
+
+  /* Log levels */
+  .log-debug { @apply text-gray-500; }
+  .log-info { @apply text-accent; }
+  .log-warn { @apply text-warning; }
+  .log-error { @apply text-loss; }
+
+  /* Trade sides */
+  .trade-long { @apply text-profit; }
+  .trade-short { @apply text-loss; }
+
+  /* P&L colors */
+  .pnl-positive { @apply text-profit; }
+  .pnl-negative { @apply text-loss; }
+}
+
+/* Animations */
+@keyframes flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.flash {
+  animation: flash 0.3s ease-in-out;
+}

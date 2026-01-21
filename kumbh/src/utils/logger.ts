@@ -1,10 +1,23 @@
 import type { StructuredLogger } from "../types/index.ts";
+import { logManager } from "./log-manager.ts";
 
 export function createLogger(strategyName: string): StructuredLogger {
-  const log = (level: string, message: string, data?: Record<string, unknown>) => {
-    const timestamp = new Date().toISOString();
+  const log = (level: "debug" | "info" | "warn" | "error", message: string, data?: Record<string, unknown>) => {
+    const timestamp = Date.now();
+
+    // Console output
+    const isoTime = new Date(timestamp).toISOString();
     const dataStr = data ? ` ${JSON.stringify(data)}` : "";
-    console.log(`[${timestamp}] [${level.toUpperCase()}] [${strategyName}] ${message}${dataStr}`);
+    console.log(`[${isoTime}] [${level.toUpperCase()}] [${strategyName}] ${message}${dataStr}`);
+
+    // Send to LogManager for storage and WebSocket broadcast
+    logManager.addLog({
+      timestamp,
+      level,
+      strategyName,
+      message,
+      data,
+    });
   };
 
   return {

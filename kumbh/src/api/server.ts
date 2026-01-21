@@ -1,10 +1,14 @@
 import { Elysia } from "elysia";
+import { cors } from "@elysiajs/cors";
 import type { Config } from "../config.ts";
 import type { StrategyManager } from "../engine/strategy-manager.ts";
 import { createStrategiesRoutes } from "./routes/strategies.ts";
 import { createBacktestRoutes } from "./routes/backtest.ts";
 import { createHealthRoutes } from "./routes/health.ts";
+import { createLogsRoutes } from "./routes/logs.ts";
+import { createTradesRoutes } from "./routes/trades.ts";
 import { createWebSocketHandler } from "./websocket/handler.ts";
+import { logManager } from "../utils/log-manager.ts";
 
 /**
  * Create and configure the Elysia API server.
@@ -17,8 +21,14 @@ export function createApiServer(
   config: Config,
   strategyManager: StrategyManager,
   startTime: number
-): Elysia {
-  const app = new Elysia();
+) {
+  const app = new Elysia()
+    // Enable CORS for frontend dev
+    .use(cors({
+      origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      credentials: true,
+    }));
 
   // Health check routes
   const healthRoutes = createHealthRoutes(config, strategyManager, startTime);
@@ -32,12 +42,25 @@ export function createApiServer(
   const backtestRoutes = createBacktestRoutes(strategyManager, config);
   app.use(backtestRoutes);
 
+  // Logs routes
+  const logsRoutes = createLogsRoutes();
+  app.use(logsRoutes);
+
+  // Trades routes
+  const tradesRoutes = createTradesRoutes(strategyManager);
+  app.use(tradesRoutes);
+
   // WebSocket handler
-  const wsHandler = createWebSocketHandler(strategyManager);
+  const wsHandler = createWebSocketHandler(strategyManager, logManager);
   app.use(wsHandler);
 
   return app;
 }
+
+/**
+ * Export the app type for Eden client
+ */
+export type App = ReturnType<typeof createApiServer>;
 
 /**
  * Start the API server and return a cleanup function.
