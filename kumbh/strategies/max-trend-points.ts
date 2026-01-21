@@ -43,7 +43,7 @@ export default class MaxTrendPointsStrategy extends Strategy {
   }
 
   get timeframes(): Interval[] {
-    return ["1h"];
+    return ["1s"];
   }
 
   async init(): Promise<void> {

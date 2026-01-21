@@ -1,11 +1,11 @@
-import { homedir } from "os";
-import { join, resolve } from "path";
+import { join, resolve, dirname } from "path";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
+import { fileURLToPath } from "url";
 
 export interface Config {
-  socketPath: string;
-  strategiesDir: string;
   dataDir: string;
+  apiPort: number;
+  apiHost: string;
   isTestnet: boolean;
   hyperliquid: {
     privateKey: string;
@@ -19,18 +19,18 @@ export interface Config {
   dashboardRefreshMs: number;
 }
 
-function expandPath(path: string): string {
-  if (path.startsWith("~")) {
-    return join(homedir(), path.slice(1));
-  }
-  return path;
+function getProjectRoot(): string {
+  // Get directory of current file, then go up to project root
+  const currentFile = fileURLToPath(import.meta.url);
+  const srcDir = dirname(currentFile);
+  return dirname(srcDir); // Go from src/ to project root
 }
 
 function generateDefaultConfigFile(): string {
   return `export default {
-  socketPath: "/tmp/kumbh.sock",
-  strategiesDir: "~/.kumbh/strategies",
-  dataDir: "~/.kumbh/data",
+  dataDir: "./data",
+  apiPort: 3847,
+  apiHost: "127.0.0.1",
   isTestnet: true,
   hyperliquid: {
     privateKey: process.env.HL_PRIVATE_KEY || "",
@@ -47,12 +47,8 @@ function generateDefaultConfigFile(): string {
 }
 
 export async function loadConfig(): Promise<Config> {
-  const configDir = join(homedir(), ".kumbh");
-  const configPath = join(configDir, "config.ts");
-
-  if (!existsSync(configDir)) {
-    mkdirSync(configDir, { recursive: true });
-  }
+  const projectRoot = getProjectRoot();
+  const configPath = join(projectRoot, "kumbh.config.ts");
 
   if (!existsSync(configPath)) {
     const defaultConfig = generateDefaultConfigFile();
@@ -63,15 +59,20 @@ export async function loadConfig(): Promise<Config> {
   const configModule = await import(configPath);
   const config: Config = configModule.default;
 
-  config.strategiesDir = expandPath(config.strategiesDir);
-  config.dataDir = expandPath(config.dataDir);
-
-  if (!existsSync(config.strategiesDir)) {
-    mkdirSync(config.strategiesDir, { recursive: true });
+  // Resolve relative data directory to project root
+  if (!config.dataDir.startsWith("/")) {
+    config.dataDir = join(projectRoot, config.dataDir);
   }
+
+  // Create data directories
+  const strategiesDbDir = join(config.dataDir, "strategies");
 
   if (!existsSync(config.dataDir)) {
     mkdirSync(config.dataDir, { recursive: true });
+  }
+
+  if (!existsSync(strategiesDbDir)) {
+    mkdirSync(strategiesDbDir, { recursive: true });
   }
 
   validateConfig(config);
@@ -81,13 +82,21 @@ export async function loadConfig(): Promise<Config> {
 function validateConfig(config: Config): void {
   if (!config.hyperliquid.privateKey) {
     throw new Error(
-      "Missing Hyperliquid private key. Set HL_PRIVATE_KEY environment variable or edit ~/.kumbh/config.ts"
+      "Missing Hyperliquid private key. Set HL_PRIVATE_KEY environment variable or edit kumbh.config.ts"
     );
   }
 
   if (!config.hyperliquid.walletAddress) {
     throw new Error(
-      "Missing Hyperliquid wallet address. Set HL_WALLET_ADDRESS environment variable or edit ~/.kumbh/config.ts"
+      "Missing Hyperliquid wallet address. Set HL_WALLET_ADDRESS environment variable or edit kumbh.config.ts"
     );
   }
+}
+
+export function getApiUrl(config: Config): string {
+  return `http://${config.apiHost}:${config.apiPort}`;
+}
+
+export function getWsUrl(config: Config): string {
+  return `ws://${config.apiHost}:${config.apiPort}/ws`;
 }

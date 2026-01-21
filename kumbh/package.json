@@ -9,8 +9,13 @@
   },
   "scripts": {
     "dev": "bun run src/index.ts",
-    "test": "bun test",
-    "daemon": "bun run src/index.ts daemon"
+    "start": "bun run src/index.ts daemon",
+    "daemon": "bun run src/index.ts daemon",
+    "list": "bun run src/index.ts list",
+    "status": "bun run src/index.ts status",
+    "dashboard": "bun run src/index.ts dashboard",
+    "add": "bun run src/index.ts add",
+    "test": "bun test"
   },
   "keywords": [
     "trading",
@@ -24,11 +29,12 @@
   "dependencies": {
     "@nktkas/hyperliquid": "^0.30.2",
     "blessed": "^0.1.81",
-    "blessed-contrib": "^4.11.0"
+    "blessed-contrib": "^4.11.0",
+    "elysia": "^1.4.22"
   },
   "devDependencies": {
-    "@types/bun": "latest",
     "@types/blessed": "^0.1.25",
+    "@types/bun": "^1.3.6",
     "@types/node": "^20.11.5",
     "bun-types": "^1.0.25"
   },

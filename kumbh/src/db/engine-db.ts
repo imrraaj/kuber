@@ -121,7 +121,8 @@ export class EngineDatabase {
   }
 
   createStrategyDatabase(strategyName: string, dataDir: string): Database {
-    const dbPath = join(dataDir, `${strategyName}.db`);
+    const strategiesDir = join(dataDir, "strategies");
+    const dbPath = join(strategiesDir, `${strategyName}.db`);
     return new Database(dbPath);
   }
 }

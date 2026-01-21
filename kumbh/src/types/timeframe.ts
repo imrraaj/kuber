@@ -3,6 +3,7 @@
  * These match Hyperliquid's supported intervals.
  */
 export type Interval =
+  | "1s"
   | "1m"   // 1 minute
   | "3m"   // 3 minutes
   | "5m"   // 5 minutes
@@ -22,7 +23,7 @@ export type Interval =
  * All intervals as an array (for iteration)
  */
 export const ALL_INTERVALS: Interval[] = [
-  "1m", "3m", "5m", "15m", "30m",
+  "1s", "1m", "3m", "5m", "15m", "30m",
   "1h", "2h", "4h", "8h", "12h",
   "1d", "3d", "1w", "1M"
 ];
@@ -32,6 +33,7 @@ export const ALL_INTERVALS: Interval[] = [
  */
 export function intervalToMs(interval: Interval): number {
   const map: Record<Interval, number> = {
+    "1s": 1000,
     "1m": 60 * 1000,
     "3m": 3 * 60 * 1000,
     "5m": 5 * 60 * 1000,

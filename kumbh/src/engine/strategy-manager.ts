@@ -1,3 +1,4 @@
+import { EventEmitter } from "events";
 import { Strategy } from "../strategy/base.ts";
 import { loadStrategyFromFile } from "../strategy/loader.ts";
 import { LiveStrategyContext } from "../strategy/live-context.ts";
@@ -8,8 +9,18 @@ import { SubscriptionManager } from "./subscription-manager.ts";
 import { HyperliquidAPI } from "./hyperliquid.ts";
 import type { Config } from "../config.ts";
 import type { CandleEvent, StrategyStatus } from "../types/index.ts";
+import type { BacktestResponse } from "../api/types.ts";
 
-export class StrategyManager {
+/**
+ * Events emitted by StrategyManager:
+ * - strategyStarted(name: string)
+ * - strategyStopped(name: string)
+ * - strategyAdded(name: string)
+ * - strategyRemoved(name: string)
+ * - strategyError(name: string, error: string)
+ * - candleProcessed(name: string)
+ */
+export class StrategyManager extends EventEmitter {
   private allStrategies: Map<string, StrategyEntry> = new Map();
   private activeStrategies: Map<string, Strategy> = new Map();
   private db: EngineDatabase;
@@ -23,6 +34,7 @@ export class StrategyManager {
     api: HyperliquidAPI,
     config: Config
   ) {
+    super();
     this.db = db;
     this.subscriptionManager = subscriptionManager;
     this.api = api;
@@ -75,6 +87,7 @@ export class StrategyManager {
 
     tempDb.close();
 
+    this.emit("strategyAdded", entry.name);
     return entry.name;
   }
 
@@ -106,6 +119,8 @@ export class StrategyManager {
     entry.isActive = true;
     entry.startedAt = Date.now();
     this.db.setActive(name, true, entry.startedAt);
+
+    this.emit("strategyStarted", name);
   }
 
   async stopStrategy(name: string): Promise<void> {
@@ -131,6 +146,8 @@ export class StrategyManager {
     entry.isActive = false;
     entry.startedAt = null;
     this.db.setActive(name, false, null);
+
+    this.emit("strategyStopped", name);
   }
 
   async removeStrategy(name: string): Promise<void> {
@@ -140,6 +157,8 @@ export class StrategyManager {
 
     this.allStrategies.delete(name);
     this.db.removeStrategy(name);
+
+    this.emit("strategyRemoved", name);
   }
 
   async reloadStrategy(name: string): Promise<void> {
@@ -152,7 +171,8 @@ export class StrategyManager {
       throw new Error(`Strategy not found: ${name}`);
     }
 
-    const StrategyClass = await loadStrategyFromFile(entry.filePath);
+    // Force reload from disk to pick up file changes
+    const StrategyClass = await loadStrategyFromFile(entry.filePath, true);
     const tempDb = this.db.createStrategyDatabase("temp", this.config.dataDir);
     const tempLogger = createLogger("temp");
     const tempCtx = new LiveStrategyContext(tempDb, tempLogger, this.config.isTestnet, this.api);
@@ -161,7 +181,7 @@ export class StrategyManager {
     entry.description = tempInstance.description;
     entry.symbols = tempInstance.symbols;
     entry.timeframes = tempInstance.timeframes;
-    
+
     this.db.updateStrategy(entry);
     tempDb.close();
   }
@@ -177,11 +197,13 @@ export class StrategyManager {
         try {
           await instance.onCandle(candle);
           this.db.updateLastCandle(strategyName, Date.now());
+          this.emit("candleProcessed", strategyName);
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error);
           console.error(`Strategy ${strategyName} error:`, errorMsg);
           this.db.incrementErrorCount(strategyName, errorMsg);
-          
+          this.emit("strategyError", strategyName, errorMsg);
+
           setTimeout(() => this.restartStrategy(strategyName), 1000);
         }
       }
@@ -206,6 +228,55 @@ export class StrategyManager {
 
   getAllStrategyEntries(): StrategyEntry[] {
     return Array.from(this.allStrategies.values());
+  }
+
+  /**
+   * Get all strategies (alias for getAllStrategyEntries for API compatibility)
+   */
+  getAllStrategies(): StrategyEntry[] {
+    return this.getAllStrategyEntries();
+  }
+
+  /**
+   * Get a single strategy by name
+   */
+  getStrategy(name: string): StrategyEntry | null {
+    return this.allStrategies.get(name) || null;
+  }
+
+  /**
+   * Run a backtest for a strategy
+   */
+  async runBacktest(
+    name: string,
+    params: { from: string; to: string; initialBalance: number },
+    _config: Config
+  ): Promise<BacktestResponse> {
+    const entry = this.allStrategies.get(name);
+    if (!entry) {
+      throw new Error(`Strategy not found: ${name}`);
+    }
+
+    // TODO: Implement actual backtesting with historical data fetching
+    // For now, return a placeholder response
+    const startTime = Date.now();
+
+    return {
+      strategyName: name,
+      period: { from: params.from, to: params.to },
+      duration: Date.now() - startTime,
+      initialBalance: params.initialBalance,
+      finalBalance: params.initialBalance,
+      totalPnl: 0,
+      totalPnlPercent: 0,
+      totalTrades: 0,
+      winningTrades: 0,
+      losingTrades: 0,
+      winRate: 0,
+      maxDrawdown: 0,
+      trades: [],
+      equityCurve: [],
+    };
   }
 
   async cleanup(): Promise<void> {

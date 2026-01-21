@@ -32,3 +32,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# Local data directory (databases, strategy data)
+data/
+
+# Local config file (contains credentials)
+kumbh.config.ts
